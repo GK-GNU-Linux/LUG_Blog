@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>news on GDUST@GNU/LUG</title>
+        <link>https://linux.feldan.top/categories/news/</link>
+        <description>Recent content in news on GDUST@GNU/LUG</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>en-us</language>
+        <lastBuildDate>Sat, 11 Sep 2021 02:17:56 +0800</lastBuildDate><atom:link href="https://linux.feldan.top/categories/news/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>广科手册</title>
+        <link>https://linux.feldan.top/p/%E5%B9%BF%E7%A7%91%E6%89%8B%E5%86%8C/</link>
+        <pubDate>Sat, 11 Sep 2021 02:17:56 +0800</pubDate>
+        
+        <guid>https://linux.feldan.top/p/%E5%B9%BF%E7%A7%91%E6%89%8B%E5%86%8C/</guid>
+        <description>&lt;img src="https://linux.feldan.top/p/%E5%B9%BF%E7%A7%91%E6%89%8B%E5%86%8C/Snipaste_2021-09-11_02-25-32.jpg" alt="Featured image of post 广科手册" /&gt;&lt;h1 id=&#34;服务与技巧&#34;&gt;🖥服务与技巧&lt;/h1&gt;
+&lt;h2 id=&#34;sid-student-id-相关&#34;&gt;SID (Student ID) 相关&lt;/h2&gt;
+&lt;h3 id=&#34;学号&#34;&gt;🆔学号&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;../sid&#34; &gt;学号的含义&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;校园卡学生证&#34;&gt;💳校园卡&amp;amp;学生证&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;../campus-card&#34; &gt;校园卡&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h2 id=&#34;信息服务&#34;&gt;信息服务&lt;/h2&gt;
+&lt;h3 id=&#34;校园网络&#34;&gt;🌐校园网络&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;../network&#34; &gt;校园网络介绍与连接指南&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;（包括无线网络，有线网络）&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h3 id=&#34;linux用户协会lug服务建设中&#34;&gt;🐧Linux用户协会（LUG）服务建设中&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;http://10.9.9.10/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;💿GDUST开源软件镜像站&lt;/a&gt;：包含常用镜像与软件源 &lt;strong&gt;（未开放公网访问）&lt;/strong&gt; 。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h2 id=&#34;教学相关&#34;&gt;教学相关&lt;/h2&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h3 id=&#34;广东科技学院教学综合信息服务平台&#34;&gt;👩‍🏫广东科技学院教学综合信息服务平台&lt;/h3&gt;
+&lt;p&gt;查询成绩/课表/选课&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;http://172.16.254.1&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;教务系统 - 内网&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;http://gkjx.gdust.edu.cn/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;教务系统 - 外网&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;http://172.16.1.232&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;五育综合数据平台 - 内网&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;课表-ics-生成&#34;&gt;📅课表 (.ics) 生成&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;../class-table-2-ics&#34; &gt;ClassTable2ICS食用教程&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;教务处通知&#34;&gt;🏫教务处通知&lt;/h3&gt;
+&lt;p&gt;第一时间获知考试/选课/活动信息&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;http://www.gdust.edu.cn/jwc/tzgg/tzgg/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;教务处通知公告&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h2 id=&#34;通讯相关&#34;&gt;通讯相关&lt;/h2&gt;
+&lt;h3 id=&#34;电子邮件服务教育邮箱&#34;&gt;📧电子邮件服务(教育邮箱)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;../email&#34; &gt;电子邮件服务&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;企业微信&#34;&gt;💬企业微信&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;../work-wechat&#34; &gt;企业微信&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h2 id=&#34;软件授权&#34;&gt;软件授权&lt;/h2&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h2 id=&#34;图书馆服务&#34;&gt;图书馆服务&lt;/h2&gt;
+&lt;p&gt;关注公众号（广东科技学院图书馆）&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h3 id=&#34;电子数据库&#34;&gt;电子数据库&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;https://www.cnki.net&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;CNKI中国知网数据库（校内免费下载）&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;del&gt;&lt;a class=&#34;link&#34; href=&#34;&#34; &gt;CNKI中国知网数据库（校外访问入口）&lt;/a&gt;&lt;/del&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;http://gdkjxy.fanya.chaoxing.com/portal&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;广东科技学院 | 网络教学平台&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;http://172.16.1.85:9088/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;广东科技学院图书馆馆藏数字资源服务平台（内网）&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;电子设备&#34;&gt;🕹️电子设备&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;../choose-a-router&#34; &gt;路由器&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        
+    </channel>
+</rss>

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content='什么是iCalendar'>
+<title>class-table-2-ics</title>
+
+<link rel='canonical' href='https://linux.feldan.top/p/class-table-2-ics/'>
+
+<link rel="stylesheet" href="/scss/style.min.8191399262444ab68b72a18c97392f5349be20a1615d77445be51e974c144cff.css"><meta property='og:title' content='class-table-2-ics'>
+<meta property='og:description' content='什么是iCalendar'>
+<meta property='og:url' content='https://linux.feldan.top/p/class-table-2-ics/'>
+<meta property='og:site_name' content='GDUST@GNU/LUG'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2021-09-11T03:51:12&#43;08:00'/><meta property='article:modified_time' content='2021-09-11T03:51:12&#43;08:00'/><meta property='og:image' content='https://linux.feldan.top/p/%E5%B9%BF%E7%A7%91%E6%89%8B%E5%86%8C/ipad.jpg' />
+<meta name="twitter:title" content="class-table-2-ics">
+<meta name="twitter:description" content="什么是iCalendar"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://linux.feldan.top/p/%E5%B9%BF%E7%A7%91%E6%89%8B%E5%86%8C/ipad.jpg' />
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu0ab85e369b83cae1a3908d76e30944b6_1614408_300x0_resize_box_3.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">GDUST@GNU/LUG</a></h1>
+            <h2 class="site-description">广东科技学院Linux用户协会</h2>
+        </div>
+    </header><ol class="social-menu">
+            
+                <li>
+                    <a 
+                        href='https://github.com/orgs/GK-GNU-Linux/dashboard'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>About</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>Archives</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>Search</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/links/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>Links</span>
+            </a>
+        </li>
+        
+
+        <div class="menu-bottom-section">
+            
+            
+                <li id="dark-mode-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <span>Dark Mode</span>
+                </li>
+            
+        </div>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#课表-ics-生成">课表 (.ics) 生成</a></li>
+    <li><a href="#简介">简介</a></li>
+    <li><a href="#功能">功能</a></li>
+    <li><a href="#使用">使用</a></li>
+    <li><a href="#生成后使用">生成后使用</a>
+      <ol>
+        <li><a href="#关于导入日历和订阅日历">关于导入日历和订阅日历</a>
+          <ol>
+            <li><a href="#名词释义">名词释义</a></li>
+            <li><a href="#iosipados-用户">iOS、iPadOS 用户</a></li>
+            <li><a href="#android-用户">Android 用户</a></li>
+          </ol>
+        </li>
+        <li><a href="#为什么使用-ical">为什么使用 iCal</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+        <div class="article-image">
+            <a href="/p/class-table-2-ics/">
+                
+                    <img src="/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/ipad.jpg" loading="lazy" alt="Featured image of post class-table-2-ics" />
+                
+            </a>
+        </div>
+    
+
+    <div class="article-details">
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/class-table-2-ics/">class-table-2-ics</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            什么是iCalendar
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">Sep 11, 2021</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    1 minute read
+                </time>
+            </div>
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="课表-ics-生成">课表 (.ics) 生成</h2>
+<p><strong>如果你是广东科技学院学生，请访问 <a class="link" href="http://farmer233.top:8003/"  target="_blank" rel="noopener"
+    >ClassTable2ICS</a> ，可自动生成学生课表。</strong>
+<img src="/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/ipad.jpg"
+	
+	
+	
+	loading="lazy"
+	
+		alt="效果图"
+	
+	
+></p>
+<h2 id="简介">简介</h2>
+<p>iCalendar 是广泛使用的日历数据交换标准，在诸如 Apple 日历、Google Calendar 的日历 app 中创建日历项，不仅可清晰的了解日程安排，更可体验 iOS、Android 系统为日历提供的各种功能：计划出行时间、日程提醒、如 Siri 与 Google Assistant 等智能语音助理自动化服务等。</p>
+<p>不过，并非所有学校都为学生提供 ics 日历，因此本代码旨在用 Python 3 协助你创建一个自己的 ics 日历课表。</p>
+<h2 id="功能">功能</h2>
+<ul>
+<li>经测试，兼容 Apple 日历、Google CalendarOutlook Calendar、MIUI Calendar、Boomsung Calendar 等日历应用，<strong>支持上述应用的日历订阅(<code>特别提醒</code>部分<code>一加</code>手机日历<code>不支持</code>导入ics文件至日历,需要自行下载完整版的日历app)</strong>（如果以本代码生成的文件创建日历订阅）</li>
+<li>支持录入各种信息，示例代码中包含：教室、课程名称、教师、必修/选修状态等</li>
+<li>支持多种课程时间安排：<strong>单独的周数，范围的周数，奇偶周数</strong>，如 &ldquo;<strong>第2周，5 至 11 周中的单数周，13 至 17 周</strong>&rdquo;</li>
+<li>支持添加教学楼信息，其中 <strong>Apple 日历还支持教学楼 GPS 定位</strong> ，在日历项中添加教学楼，就可利用 iOS 的 Siri 分析功能在多个 app 中获得附加功能</li>
+<li>导入到系统日历后，支持诸多由操作系统提供的日历功能：例如，在 iOS 设备中添加日历项后，你可以直接向 Siri 询问：「我下周五有什么日程？」获得下周五的课表；或是在 Apple Watch 表盘上显示下一个课程的时间；或是使用 Shortcut 捷径进行更多操作。</li>
+</ul>
+<h2 id="使用">使用</h2>
+<h2 id="生成后使用">生成后使用</h2>
+<h3 id="关于导入日历和订阅日历">关于导入日历和订阅日历</h3>
+<h4 id="名词释义">名词释义</h4>
+<p><strong>导入日历</strong></p>
+<p>导入日历是一次性行为，生成 ics 并导入日历后，日历 app 将仅保留 ics 文件中的日历项。在需要变更日历时，可能需要先移除已有的日历项，再重新导入新的日历。</p>
+<p>其特点是数据一经导入后<strong>便进行存档</strong>，并且，你可以随时在日历 app 中<strong>修改日历项的内容</strong>，例如调整日历项的时间、地点、标题、内容等等。</p>
+<p>导入日历相当于是复制了 ics 中的日历项并创建到你的日历当中。</p>
+<p><strong>订阅日历</strong></p>
+<p>订阅日历是一个只读行为，你需要向日历 app 提供日历（ics 文件）的地址，日历 app 将自动定时请求这一地址，以检查日历有无发生变更，并在变更时自动将更新的日历同步到你的日历 app 中。</p>
+<p>其特点是数据随远程 ics 文件的变化而变化，并且，日历项完全由 ics 文件决定，你不能<strong>修改日历项的任何内容</strong>。</p>
+<p>订阅日历的好处是，只要服务端的日历变更，日历 app 中的数据便会获得同步变更。</p>
+<h4 id="iosipados-用户">iOS、iPadOS 用户</h4>
+<h5 id="导入日历">导入日历</h5>
+<p>要导入日历，你需要在 iOS、iPadOS 上设法打开 ics 文件，较为简单的方法是：（iOS 与 iPadOS 相同）</p>
+<ul>
+<li>如果你有 Mac 等其他 Apple 设备并支持 AirDrop，将 ics 文件 AirDrop 到需要导入日历的 iOS 设备即可；</li>
+<li>如果你使用 iOS 自带的邮件 app，将 ics 作为附件发送邮件给设备，并点击附件中的 ics 文件；</li>
+<li>如果你有网络服务器，或有办法将 ics 上传到一个网站上，使用 Safari 浏览器打开链接到 ics 文件的地址；</li>
+</ul>
+<p>导入的界面类似下图</p>
+<p><img src="/..p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/images/"
+	
+	
+	
+	loading="lazy"
+	
+	
+></p>
+<p>点击「添加全部」按钮，将会导入所有日历项到你的日历当中。</p>
+<p><strong>注意！若你只有一个日历</strong>（日历是容纳日历项的地方，iOS 支持创建多个日历），点击「添加全部」将直接添加到你的唯一日历中，此日历可能包含了你的其他日历项，直接添加到默认日历可能造成后续删除课表极为不便（难以进行批量删除）。</p>
+<p>强烈建议首先创建一个空白日历，此后点击「添加全部」，iOS 会提示你选择导入的日历，选择空白日历有利于后续进行批量管理。</p>
+<h5 id="订阅日历">订阅日历</h5>
+<p>要订阅日历，你必须将 ics 放在一个固定可访问的 URL 地址，这可能要求你有可控制的 Web 服务器。</p>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<h4 id="android-用户">Android 用户</h4>
+<h5 id="导入日历-1">导入日历</h5>
+<p>要导入日历，通iOS 设备一样,你需要在Android 上设法打开 ics 文件，较为简单的方法是：</p>
+<ul>
+<li>浏览器下载ics文件,使用日历打开.
+<img src="/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/images/phone1.jpg"
+	
+	
+	
+	loading="lazy"
+	
+		alt="日历打开ics"
+	
+	
+></li>
+<li>如果你使用邮件 app，将 ics 作为附件发送邮件给设备，并点击附件中的 ics 文件；</li>
+<li>如果你有网络服务器，或有办法将 ics 上传到一个网站上，使用 Safari 浏览器打开链接到 ics 文件的地址；</li>
+</ul>
+<p>导入的界面类似下图</p>
+<p><img src="/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/images/phone2.jpg"
+	
+	
+	
+	loading="lazy"
+	
+		alt="手机导入"
+	
+	
+></p>
+<p>点击「添加全部」按钮，将会导入所有日历项到你的日历当中。</p>
+<p><strong>注意！若你只有一个日历</strong>（日历是容纳日历项的地方，Android 同样支持创建多个日历），点击「添加全部」将直接添加到你的唯一日历中，此日历可能包含了你的其他日历项，直接添加到默认日历可能造成后续删除课表极为不便（难以进行批量删除）。</p>
+<p>强烈建议首先创建一个空白日历，此后点击「添加全部」，Android 会提示你选择导入的日历，选择空白日历有利于后续进行批量管理。</p>
+<h5 id="订阅日历-1">订阅日历</h5>
+<p>要订阅日历，你必须将 ics 放在一个固定可访问的 URL 地址，这可能要求你有可控制的 Web 服务器。</p>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<h3 id="为什么使用-ical">为什么使用 iCal</h3>
+<p>在诸如 Apple 日历、Google Calendar 的日历 app 中创建日历项，不仅可清晰的了解日程安排，更可体验 iOS、Android 系统为日历提供的各种功能：计划出行时间、日程提醒、如 Siri 与 Google Assistant 等智能语音助理自动化服务等
+例如，在设备中添加日历项后，你可以直接向语音助手询问「明天有什么日程」
+<img src="/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/images/boomsung.jpg"
+	
+	
+	
+	loading="lazy"
+	
+		alt="boomsung"
+	
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    
+    <section class="article-copyright">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under CC BY-NC-SA 4.0</span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2022 GDUST@GNU/LUG
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="3.16.0">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
