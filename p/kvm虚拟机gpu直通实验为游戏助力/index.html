@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content='给KVM虚拟机加双翅膀'>
+<title>KVM虚拟机GPU直通实验，为游戏助力</title>
+
+<link rel='canonical' href='https://linux.feldan.top/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/'>
+
+<link rel="stylesheet" href="/scss/style.min.8191399262444ab68b72a18c97392f5349be20a1615d77445be51e974c144cff.css"><meta property='og:title' content='KVM虚拟机GPU直通实验，为游戏助力'>
+<meta property='og:description' content='给KVM虚拟机加双翅膀'>
+<meta property='og:url' content='https://linux.feldan.top/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/'>
+<meta property='og:site_name' content='GDUST@GNU/LUG'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2022-11-29T02:45:32&#43;08:00'/><meta property='article:modified_time' content='2022-11-29T02:45:32&#43;08:00'/><meta property='og:image' content='https://linux.feldan.top/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/neofetch.png' />
+<meta name="twitter:title" content="KVM虚拟机GPU直通实验，为游戏助力">
+<meta name="twitter:description" content="给KVM虚拟机加双翅膀"><meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content='https://linux.feldan.top/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/neofetch.png' />
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu0ab85e369b83cae1a3908d76e30944b6_1614408_300x0_resize_box_3.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">GDUST@GNU/LUG</a></h1>
+            <h2 class="site-description">广东科技学院Linux用户协会</h2>
+        </div>
+    </header><ol class="social-menu">
+            
+                <li>
+                    <a 
+                        href='https://github.com/orgs/GK-GNU-Linux/dashboard'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>About</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>Archives</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>Search</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/links/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>Links</span>
+            </a>
+        </li>
+        
+
+        <div class="menu-bottom-section">
+            
+            
+                <li id="dark-mode-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <span>Dark Mode</span>
+                </li>
+            
+        </div>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#介绍">介绍</a></li>
+    <li><a href="#查看笔记本架构">查看笔记本架构</a></li>
+    <li><a href="#开启vt-d虚拟化以及iommu模块">开启VT-d虚拟化以及IOMMU模块</a></li>
+    <li><a href="#添加vfio模块屏蔽gpu">添加vfio模块屏蔽GPU</a></li>
+    <li><a href="#创建虚拟机">创建虚拟机</a></li>
+    <li><a href="#显卡直通">显卡直通</a></li>
+    <li><a href="#参考链接">参考链接</a></li>
+    <li><a href="#xml完整配置">XML完整配置</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="has-image main-article">
+    <header class="article-header">
+        <div class="article-image">
+            <a href="/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/">
+                <img src="/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/neofetch_hu00cf82c41589ac4736027c4c3c067eb0_263062_800x0_resize_box_3.png"
+                        srcset="/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/neofetch_hu00cf82c41589ac4736027c4c3c067eb0_263062_800x0_resize_box_3.png 800w, /p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/neofetch_hu00cf82c41589ac4736027c4c3c067eb0_263062_1600x0_resize_box_3.png 1600w"
+                        width="800" 
+                        height="520" 
+                        loading="lazy"
+                        alt="Featured image of post KVM虚拟机GPU直通实验，为游戏助力" />
+                
+            </a>
+        </div>
+    
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/%E6%8A%80%E6%9C%AF%E5%91%A8%E6%8A%A5/" >
+                技术周报
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/">KVM虚拟机GPU直通实验，为游戏助力</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            给KVM虚拟机加双翅膀
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">Nov 29, 2022</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    6 minute read
+                </time>
+            </div>
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <p>作者: Twac</p>
+<h2 id="介绍">介绍</h2>
+<p>KVM(Kernel-based Virtual Machine)是一个开源的系统虚拟化模块，选择KVM的原因是因为自己的主力系统的Linux。但是出于不可抗力的原因（臭打游戏的）也不能完全脱离Windows，起初笔记本装了双系统，但是来回切换还是太麻烦了，虽然Linux有Wine、Proton等一些兼容层，但是效果还是不尽人意。</p>
+<p>于是就想在Linux上运行一台Windows虚拟机，但是KVM虚拟机配合QEMU的QXL图形渲染还是达不到（畅玩游戏）要求的。所以要利用KVM PCIe直通功能，让虚拟机独占高性能显卡，直接加载显卡对应的驱动，和显卡直接通信，给它加一双翅膀，拥有和物理机几乎同样的渲染性能。</p>
+<p>实验环境：</p>
+<p><img src="https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/neofetch.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="neofetch"
+	
+	
+></p>
+<ul>
+<li>虚拟机镜像：Windows 10 LTSC 2019</li>
+<li>主机：神舟战神G7-CT7NK</li>
+<li>套件：libvirt + qemu + virt-manager(GUI)</li>
+</ul>
+<h2 id="查看笔记本架构">查看笔记本架构</h2>
+<p>目前主流的笔记本架构是<code>MUXed</code>和<code>MUXLess</code>。相比<code>MUXLess</code>来说，<code>MUXed</code>架构的笔记本更容易直通，因为它采用的是核显/独显切换工作方式。而<code>MUXLess</code>架构是核显输出，独显渲染。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">$ lspci <span class="p">|</span> grep VGA <span class="c1">#查看架构</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果独显以3D Controller开头，那么属于<code>MUXLess</code>；如果独显以VGA Controller开头，并且由于一个VGA核显输出(Intel/AMD)，那么属于<code>MUXed</code>。</p>
+<p><img src="https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/lspci.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="lspci"
+	
+	
+></p>
+<h2 id="开启vt-d虚拟化以及iommu模块">开启VT-d虚拟化以及IOMMU模块</h2>
+<p>BIOS开启VT-d，并在宿主机内核参数添加 <code>iommu=on,iommu=pt</code> ，其中 <code>iommu=pt</code> 为了防止不能直通的设备造成错误。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">$ dmesg <span class="p">|</span> grep -e DMAR -e IOMMU  <span class="c1">#检查 dmesg 以确认 IOMMU 已经被正确启用</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>注意：</p>
+<ul>
+<li>IOMMU 是 Intel VT-d 和 AMD-Vi 的通用名称。</li>
+<li>VT-d 指的是直接输入/输出虚拟化(Intel Virtualization Technology for Directed I/O)，不应与VT-x(x86平台下的Intel虚拟化技术，Intel Virtualization Technology)混淆。VT-x 可以让一个硬件平台作为多个“虚拟”平台，而 VT-d 提高了虚拟化的安全性、可靠性和 I/O 性能。</li>
+</ul>
+</blockquote>
+<p><img src="https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/iommu.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="iommu"
+	
+	
+></p>
+<h2 id="添加vfio模块屏蔽gpu">添加vfio模块屏蔽GPU</h2>
+<p>将<code>vfio_pci vfio vfio_iommu_type1 vfio_virqfd</code>添加到initramfs中，重新生成内核并重启。然后运行以下脚本，查看设备id.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash #查看是否生效
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="nb">shopt</span> -s nullglob
+</span></span><span class="line"><span class="cl"><span class="k">for</span> d in /sys/kernel/iommu_groups/*/devices/*<span class="p">;</span> <span class="k">do</span> 
+</span></span><span class="line"><span class="cl">    <span class="nv">n</span><span class="o">=</span><span class="si">${</span><span class="nv">d</span><span class="p">#*/iommu_groups/*</span><span class="si">}</span><span class="p">;</span> <span class="nv">n</span><span class="o">=</span><span class="si">${</span><span class="nv">n</span><span class="p">%%/*</span><span class="si">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">printf</span> <span class="s1">&#39;IOMMU Group %s &#39;</span> <span class="s2">&#34;</span><span class="nv">$n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">    lspci -nns <span class="s2">&#34;</span><span class="si">${</span><span class="nv">d</span><span class="p">##*/</span><span class="si">}</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="k">done</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看到group1对应的是本机独显设备
+<img src="https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/group.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="iommu_group"
+	
+	
+></p>
+<p>将以上设备id添加到<code>/etc/modprobe.d/vfio.conf</code>中启用vfio-pci驱动隔离GPU，编辑内容如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">/etc/modprobe.d/vfio.conf
+</span></span><span class="line"><span class="cl">----------------------------------------------------------------------
+</span></span><span class="line"><span class="cl">options vfio-pci ids=8086:1901,10de:2191,10de:1aeb,10de:1aec.10de:1aed
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="创建虚拟机">创建虚拟机</h2>
+<p>使用virt-manager(GUI)创建一台虚拟机：</p>
+<ul>
+<li>架构：Q35</li>
+<li>固件：UEFI</li>
+<li>CPUs：host-passthrogh</li>
+<li>内存：8192(8G)</li>
+<li>启动盘&amp;数据盘：驱动使用virtio</li>
+<li>网络：NIC/NAT，驱动依然virtio</li>
+</ul>
+<p>默认先用QEMU的QXL渲染，安装好<a class="link" href="https://github.com/virtio-win/virtio-win-pkg-scripts"  target="_blank" rel="noopener"
+    >virtio驱动</a></p>
+<h2 id="显卡直通">显卡直通</h2>
+<p>先确定一下显卡 <code>device-id</code> 和 <code>vendor-id</code> 和 PCI 总线 ID 是否一致，如果不一致需要将 ID 修改为一致的，终端运行</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">$ lspci -nnk <span class="p">|</span> egrep -A3 <span class="s2">&#34;VGA|3D&#34;</span> <span class="c1">#检查ID</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/subSystem.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="subSystem"
+	
+	
+></p>
+<p>如图我的独显的vendor-id是<code>10de</code>，device-id是<code>2191</code>;<br>
+PCI系统总线的 vendor-id 是<code>1558</code>，device-id 是<code>8550</code></p>
+<p>拿到ID后在virt-manager(GUI)直通独显设备，注意要将IOMMU组里的全部设备直通进去</p>
+<p><img src="https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/addPCIe.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="addPCIe"
+	
+	
+></p>
+<blockquote>
+<p>由于NVIDIA今年放开了虚拟化限制，提取显卡vbios是一个可选项，不需要绕过检测。</p>
+</blockquote>
+<p>此时如果开机，查看设备管理器会多出一个<code>Microsoft基本显示适配器</code>，说明已经识别到设备了，但是点开一看报了代码<code>31</code>，无法加载驱动。需要在虚拟机xml配置PCIe总线id。</p>
+<p>首先在xml配置的第一行<code>&lt;domain&gt;</code>标签配置qemu命名空间（详情看文末虚拟机xml配置）<code>&lt;domain xmlns:qemu=&quot;http://libvirt.org/schemas/domain/qemu/1.0&quot; type=&quot;kvm&quot;&gt;</code></p>
+<p>然后在虚拟机xml配置尾部添加前面记录的PCIe总线id<code>(注意进制转换)</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;qemu:override&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;qemu:device</span> <span class="na">alias=</span><span class="s">&#34;hostdev0&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;qemu:frontend&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;qemu:property</span> <span class="na">name=</span><span class="s">&#34;x-pci-sub-vendor-id&#34;</span> <span class="na">type=</span><span class="s">&#34;unsigned&#34;</span> <span class="na">value=</span><span class="s">&#34;5464&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;qemu:property</span> <span class="na">name=</span><span class="s">&#34;x-pci-sub-device-id&#34;</span> <span class="na">type=</span><span class="s">&#34;unsigned&#34;</span> <span class="na">value=</span><span class="s">&#34;34128&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;/qemu:frontend&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/qemu:device&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/qemu:override&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果你的qemu版本低于7.0那么用如下配置即可</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;qemu:commandline&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;qemu:arg</span> <span class="na">value=</span><span class="s">&#39;-set&#39;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;qemu:arg</span> <span class="na">value=</span><span class="s">&#39;device.hostdev0.x-pci-sub-vendor-id=5464&#39;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;qemu:arg</span> <span class="na">value=</span><span class="s">&#39;-set&#39;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;qemu:arg</span> <span class="na">value=</span><span class="s">&#39;device.hostdev0.x-pci-sub-device-id=34128&#39;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/qemu:commandline&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>做完这些重启虚拟机，驱动应该是正常运行，此时算是大功告成。直通显卡后，开启虚拟机后要切换独显输出，因为宿主机用的是核显，此时可以选择外接一个显示器（笔记本的HDMI/DP接口使用的是独显），或者利用<code>libvirt hooks</code>钩子函数让独显抢占当前笔记本显示器。</p>
+<p>至此显卡基本直通到此结束，还是趟了很多坑的。小小记录一下。
+<img src="https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/view.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="效果"
+	
+	
+></p>
+<blockquote>
+<h2 id="参考链接">参考链接</h2>
+<ol>
+<li><a class="link" href="https://wiki.archlinux.org/title/%3ePCI_passthrough_via_OVMF_%28%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87%29"  target="_blank" rel="noopener"
+    >ArchWiki - PCI passthrough via OVMF (简体中文)</a></li>
+<li><a class="link" href="https://wiki.archlinux.org/title/Intel_GVT-g"  target="_blank" rel="noopener"
+    >ArchWiki - Intel_GVT-g</a></li>
+<li><a class="link" href="https://wiki.archlinux.org/title/Libvirt"  target="_blank" rel="noopener"
+    >ArchWiki - Libvirt</a></li>
+</ol>
+</blockquote>
+<h2 id="xml完整配置">XML完整配置</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span><span class="lnt">158
+</span><span class="lnt">159
+</span><span class="lnt">160
+</span><span class="lnt">161
+</span><span class="lnt">162
+</span><span class="lnt">163
+</span><span class="lnt">164
+</span><span class="lnt">165
+</span><span class="lnt">166
+</span><span class="lnt">167
+</span><span class="lnt">168
+</span><span class="lnt">169
+</span><span class="lnt">170
+</span><span class="lnt">171
+</span><span class="lnt">172
+</span><span class="lnt">173
+</span><span class="lnt">174
+</span><span class="lnt">175
+</span><span class="lnt">176
+</span><span class="lnt">177
+</span><span class="lnt">178
+</span><span class="lnt">179
+</span><span class="lnt">180
+</span><span class="lnt">181
+</span><span class="lnt">182
+</span><span class="lnt">183
+</span><span class="lnt">184
+</span><span class="lnt">185
+</span><span class="lnt">186
+</span><span class="lnt">187
+</span><span class="lnt">188
+</span><span class="lnt">189
+</span><span class="lnt">190
+</span><span class="lnt">191
+</span><span class="lnt">192
+</span><span class="lnt">193
+</span><span class="lnt">194
+</span><span class="lnt">195
+</span><span class="lnt">196
+</span><span class="lnt">197
+</span><span class="lnt">198
+</span><span class="lnt">199
+</span><span class="lnt">200
+</span><span class="lnt">201
+</span><span class="lnt">202
+</span><span class="lnt">203
+</span><span class="lnt">204
+</span><span class="lnt">205
+</span><span class="lnt">206
+</span><span class="lnt">207
+</span><span class="lnt">208
+</span><span class="lnt">209
+</span><span class="lnt">210
+</span><span class="lnt">211
+</span><span class="lnt">212
+</span><span class="lnt">213
+</span><span class="lnt">214
+</span><span class="lnt">215
+</span><span class="lnt">216
+</span><span class="lnt">217
+</span><span class="lnt">218
+</span><span class="lnt">219
+</span><span class="lnt">220
+</span><span class="lnt">221
+</span><span class="lnt">222
+</span><span class="lnt">223
+</span><span class="lnt">224
+</span><span class="lnt">225
+</span><span class="lnt">226
+</span><span class="lnt">227
+</span><span class="lnt">228
+</span><span class="lnt">229
+</span><span class="lnt">230
+</span><span class="lnt">231
+</span><span class="lnt">232
+</span><span class="lnt">233
+</span><span class="lnt">234
+</span><span class="lnt">235
+</span><span class="lnt">236
+</span><span class="lnt">237
+</span><span class="lnt">238
+</span><span class="lnt">239
+</span><span class="lnt">240
+</span><span class="lnt">241
+</span><span class="lnt">242
+</span><span class="lnt">243
+</span><span class="lnt">244
+</span><span class="lnt">245
+</span><span class="lnt">246
+</span><span class="lnt">247
+</span><span class="lnt">248
+</span><span class="lnt">249
+</span><span class="lnt">250
+</span><span class="lnt">251
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- 第一行`&lt;domain&gt;`标签配置qemu命名空间`&lt;domain xmlns:qemu=&#34;http://libvirt.org/schemas/domain/qemu/1.0&#34; type=&#34;kvm&#34;&gt;` --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;domain</span> <span class="na">xmlns:qemu=</span><span class="s">&#34;http://libvirt.org/schemas/domain/qemu/1.0&#34;</span> <span class="na">type=</span><span class="s">&#34;kvm&#34;</span> 
+</span></span><span class="line"><span class="cl">  <span class="err">&lt;name</span><span class="nt">&gt;</span>win10<span class="nt">&lt;/name&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;uuid&gt;</span>7c121caf-30db-4a3a-82f6-d59ca87b802f<span class="nt">&lt;/uuid&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;metadata&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;libosinfo:libosinfo</span> <span class="na">xmlns:libosinfo=</span><span class="s">&#34;http://libosinfo.org/xmlns/libvirt/domain/1.0&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;libosinfo:os</span> <span class="na">id=</span><span class="s">&#34;http://microsoft.com/win/10&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/libosinfo:libosinfo&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/metadata&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;memory</span> <span class="na">unit=</span><span class="s">&#34;KiB&#34;</span><span class="nt">&gt;</span>12582912<span class="nt">&lt;/memory&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;currentMemory</span> <span class="na">unit=</span><span class="s">&#34;KiB&#34;</span><span class="nt">&gt;</span>12582912<span class="nt">&lt;/currentMemory&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;vcpu</span> <span class="na">placement=</span><span class="s">&#34;static&#34;</span><span class="nt">&gt;</span>8<span class="nt">&lt;/vcpu&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;os&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;type</span> <span class="na">arch=</span><span class="s">&#34;x86_64&#34;</span> <span class="na">machine=</span><span class="s">&#34;pc-q35-7.0&#34;</span><span class="nt">&gt;</span>hvm<span class="nt">&lt;/type&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;loader</span> <span class="na">readonly=</span><span class="s">&#34;yes&#34;</span> <span class="na">type=</span><span class="s">&#34;pflash&#34;</span><span class="nt">&gt;</span>/usr/share/edk2-ovmf/x64/OVMF_CODE.fd<span class="nt">&lt;/loader&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;nvram&gt;</span>/var/lib/libvirt/qemu/nvram/win10_VARS.fd<span class="nt">&lt;/nvram&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/os&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;features&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;acpi/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;apic/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hyperv</span> <span class="na">mode=</span><span class="s">&#34;custom&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hyperv&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;vmport</span> <span class="na">state=</span><span class="s">&#34;off&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/features&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;cpu</span> <span class="na">mode=</span><span class="s">&#34;host-passthrough&#34;</span> <span class="na">check=</span><span class="s">&#34;none&#34;</span> <span class="na">migratable=</span><span class="s">&#34;on&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;topology</span> <span class="na">sockets=</span><span class="s">&#34;1&#34;</span> <span class="na">dies=</span><span class="s">&#34;1&#34;</span> <span class="na">cores=</span><span class="s">&#34;4&#34;</span> <span class="na">threads=</span><span class="s">&#34;2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/cpu&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;clock</span> <span class="na">offset=</span><span class="s">&#34;localtime&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;timer</span> <span class="na">name=</span><span class="s">&#34;rtc&#34;</span> <span class="na">tickpolicy=</span><span class="s">&#34;catchup&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;timer</span> <span class="na">name=</span><span class="s">&#34;pit&#34;</span> <span class="na">tickpolicy=</span><span class="s">&#34;delay&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;timer</span> <span class="na">name=</span><span class="s">&#34;hpet&#34;</span> <span class="na">present=</span><span class="s">&#34;no&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;timer</span> <span class="na">name=</span><span class="s">&#34;hypervclock&#34;</span> <span class="na">present=</span><span class="s">&#34;yes&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/clock&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;on_poweroff&gt;</span>destroy<span class="nt">&lt;/on_poweroff&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;on_reboot&gt;</span>restart<span class="nt">&lt;/on_reboot&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;on_crash&gt;</span>destroy<span class="nt">&lt;/on_crash&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;pm&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;suspend-to-mem</span> <span class="na">enabled=</span><span class="s">&#34;no&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;suspend-to-disk</span> <span class="na">enabled=</span><span class="s">&#34;no&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/pm&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;devices&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;emulator&gt;</span>/usr/bin/qemu-system-x86_64<span class="nt">&lt;/emulator&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;disk</span> <span class="na">type=</span><span class="s">&#34;file&#34;</span> <span class="na">device=</span><span class="s">&#34;disk&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;driver</span> <span class="na">name=</span><span class="s">&#34;qemu&#34;</span> <span class="na">type=</span><span class="s">&#34;qcow2&#34;</span> <span class="na">cache=</span><span class="s">&#34;writeback&#34;</span> <span class="na">discard=</span><span class="s">&#34;ignore&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source</span> <span class="na">file=</span><span class="s">&#34;/home/twac/VM/storage/win10.qcow2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">dev=</span><span class="s">&#34;vda&#34;</span> <span class="na">bus=</span><span class="s">&#34;virtio&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;boot</span> <span class="na">order=</span><span class="s">&#34;1&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x04&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/disk&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;disk</span> <span class="na">type=</span><span class="s">&#34;file&#34;</span> <span class="na">device=</span><span class="s">&#34;disk&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;driver</span> <span class="na">name=</span><span class="s">&#34;qemu&#34;</span> <span class="na">type=</span><span class="s">&#34;qcow2&#34;</span> <span class="na">cache=</span><span class="s">&#34;writeback&#34;</span> <span class="na">discard=</span><span class="s">&#34;ignore&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source</span> <span class="na">file=</span><span class="s">&#34;/home/twac/VM/storage/DATA.qcow2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">dev=</span><span class="s">&#34;vdb&#34;</span> <span class="na">bus=</span><span class="s">&#34;virtio&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x0a&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/disk&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;disk</span> <span class="na">type=</span><span class="s">&#34;file&#34;</span> <span class="na">device=</span><span class="s">&#34;cdrom&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;driver</span> <span class="na">name=</span><span class="s">&#34;qemu&#34;</span> <span class="na">type=</span><span class="s">&#34;raw&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source</span> <span class="na">file=</span><span class="s">&#34;/home/twac/VM/ISO/Win10_21H2_Chinese(Simplified)_x64.iso&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">dev=</span><span class="s">&#34;sdb&#34;</span> <span class="na">bus=</span><span class="s">&#34;sata&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;readonly/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;boot</span> <span class="na">order=</span><span class="s">&#34;2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;drive&#34;</span> <span class="na">controller=</span><span class="s">&#34;0&#34;</span> <span class="na">bus=</span><span class="s">&#34;0&#34;</span> <span class="na">target=</span><span class="s">&#34;0&#34;</span> <span class="na">unit=</span><span class="s">&#34;1&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/disk&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;disk</span> <span class="na">type=</span><span class="s">&#34;file&#34;</span> <span class="na">device=</span><span class="s">&#34;cdrom&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;driver</span> <span class="na">name=</span><span class="s">&#34;qemu&#34;</span> <span class="na">type=</span><span class="s">&#34;raw&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source</span> <span class="na">file=</span><span class="s">&#34;/home/twac/VM/ISO/virtio-win-0.1.208.iso&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">dev=</span><span class="s">&#34;sdc&#34;</span> <span class="na">bus=</span><span class="s">&#34;sata&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;readonly/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;drive&#34;</span> <span class="na">controller=</span><span class="s">&#34;0&#34;</span> <span class="na">bus=</span><span class="s">&#34;0&#34;</span> <span class="na">target=</span><span class="s">&#34;0&#34;</span> <span class="na">unit=</span><span class="s">&#34;2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/disk&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;usb&#34;</span> <span class="na">index=</span><span class="s">&#34;0&#34;</span> <span class="na">model=</span><span class="s">&#34;qemu-xhci&#34;</span> <span class="na">ports=</span><span class="s">&#34;15&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x02&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;0&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;1&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;1&#34;</span> <span class="na">port=</span><span class="s">&#34;0x10&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span> <span class="na">multifunction=</span><span class="s">&#34;on&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;2&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;2&#34;</span> <span class="na">port=</span><span class="s">&#34;0x11&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x1&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;3&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;3&#34;</span> <span class="na">port=</span><span class="s">&#34;0x12&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;4&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;4&#34;</span> <span class="na">port=</span><span class="s">&#34;0x13&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x3&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;5&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;5&#34;</span> <span class="na">port=</span><span class="s">&#34;0x14&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x4&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;6&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;6&#34;</span> <span class="na">port=</span><span class="s">&#34;0x15&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x5&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;7&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;7&#34;</span> <span class="na">port=</span><span class="s">&#34;0x16&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x6&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;8&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;8&#34;</span> <span class="na">port=</span><span class="s">&#34;0x17&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x7&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;9&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;9&#34;</span> <span class="na">port=</span><span class="s">&#34;0x18&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x03&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span> <span class="na">multifunction=</span><span class="s">&#34;on&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;10&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;10&#34;</span> <span class="na">port=</span><span class="s">&#34;0x19&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x03&#34;</span> <span class="na">function=</span><span class="s">&#34;0x1&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;11&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;11&#34;</span> <span class="na">port=</span><span class="s">&#34;0x1a&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x03&#34;</span> <span class="na">function=</span><span class="s">&#34;0x2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;12&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;12&#34;</span> <span class="na">port=</span><span class="s">&#34;0x1b&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x03&#34;</span> <span class="na">function=</span><span class="s">&#34;0x3&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;13&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;13&#34;</span> <span class="na">port=</span><span class="s">&#34;0x1c&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x03&#34;</span> <span class="na">function=</span><span class="s">&#34;0x4&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;14&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;14&#34;</span> <span class="na">port=</span><span class="s">&#34;0x1d&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x03&#34;</span> <span class="na">function=</span><span class="s">&#34;0x5&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;15&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-root-port&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;target</span> <span class="na">chassis=</span><span class="s">&#34;15&#34;</span> <span class="na">port=</span><span class="s">&#34;0x8&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x01&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">index=</span><span class="s">&#34;16&#34;</span> <span class="na">model=</span><span class="s">&#34;pcie-to-pci-bridge&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">name=</span><span class="s">&#34;pcie-pci-bridge&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x0b&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;sata&#34;</span> <span class="na">index=</span><span class="s">&#34;0&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x1f&#34;</span> <span class="na">function=</span><span class="s">&#34;0x2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;controller</span> <span class="na">type=</span><span class="s">&#34;virtio-serial&#34;</span> <span class="na">index=</span><span class="s">&#34;0&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x03&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/controller&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;interface</span> <span class="na">type=</span><span class="s">&#34;network&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;mac</span> <span class="na">address=</span><span class="s">&#34;52:54:00:98:77:e9&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source</span> <span class="na">network=</span><span class="s">&#34;default&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;model</span> <span class="na">type=</span><span class="s">&#34;virtio&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x0c&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/interface&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&#34;mouse&#34;</span> <span class="na">bus=</span><span class="s">&#34;ps2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&#34;keyboard&#34;</span> <span class="na">bus=</span><span class="s">&#34;ps2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;sound</span> <span class="na">model=</span><span class="s">&#34;ich6&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x10&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x01&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/sound&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;audio</span> <span class="na">id=</span><span class="s">&#34;1&#34;</span> <span class="na">type=</span><span class="s">&#34;none&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;driver</span> <span class="na">name=</span><span class="s">&#34;vfio&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;address</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x01&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;rom</span> <span class="na">bar=</span><span class="s">&#34;on&#34;</span> <span class="na">file=</span><span class="s">&#34;/var/tmp/1660ti.rom&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x06&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;address</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x01&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x1&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;rom</span> <span class="na">bar=</span><span class="s">&#34;on&#34;</span> <span class="na">file=</span><span class="s">&#34;/var/tmp/1660ti.rom&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x07&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;address</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x01&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;rom</span> <span class="na">bar=</span><span class="s">&#34;on&#34;</span> <span class="na">file=</span><span class="s">&#34;/var/tmp/1660ti.rom&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x08&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;address</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x01&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x3&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;rom</span> <span class="na">bar=</span><span class="s">&#34;on&#34;</span> <span class="na">file=</span><span class="s">&#34;/var/tmp/1660ti.rom&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x09&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;usb&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;vendor</span> <span class="na">id=</span><span class="s">&#34;0x046d&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;product</span> <span class="na">id=</span><span class="s">&#34;0xc332&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;usb&#34;</span> <span class="na">bus=</span><span class="s">&#34;0&#34;</span> <span class="na">port=</span><span class="s">&#34;1&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;usb&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;vendor</span> <span class="na">id=</span><span class="s">&#34;0x05ac&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;product</span> <span class="na">id=</span><span class="s">&#34;0x024f&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;usb&#34;</span> <span class="na">bus=</span><span class="s">&#34;0&#34;</span> <span class="na">port=</span><span class="s">&#34;2&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;address</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x1f&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x10&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x02&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;address</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x1f&#34;</span> <span class="na">function=</span><span class="s">&#34;0x3&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x10&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x03&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;address</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x1f&#34;</span> <span class="na">function=</span><span class="s">&#34;0x4&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x10&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x04&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;hostdev</span> <span class="na">mode=</span><span class="s">&#34;subsystem&#34;</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">managed=</span><span class="s">&#34;yes&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;source&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;address</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x00&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x1f&#34;</span> <span class="na">function=</span><span class="s">&#34;0x5&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/source&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x10&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x05&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/hostdev&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;memballoon</span> <span class="na">model=</span><span class="s">&#34;virtio&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;address</span> <span class="na">type=</span><span class="s">&#34;pci&#34;</span> <span class="na">domain=</span><span class="s">&#34;0x0000&#34;</span> <span class="na">bus=</span><span class="s">&#34;0x05&#34;</span> <span class="na">slot=</span><span class="s">&#34;0x00&#34;</span> <span class="na">function=</span><span class="s">&#34;0x0&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/memballoon&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/devices&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;qemu:override&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;qemu:device</span> <span class="na">alias=</span><span class="s">&#34;hostdev0&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;qemu:frontend&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;qemu:property</span> <span class="na">name=</span><span class="s">&#34;x-pci-sub-vendor-id&#34;</span> <span class="na">type=</span><span class="s">&#34;unsigned&#34;</span> <span class="na">value=</span><span class="s">&#34;5464&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;qemu:property</span> <span class="na">name=</span><span class="s">&#34;x-pci-sub-device-id&#34;</span> <span class="na">type=</span><span class="s">&#34;unsigned&#34;</span> <span class="na">value=</span><span class="s">&#34;34128&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&lt;/qemu:frontend&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/qemu:device&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&lt;/qemu:override&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/domain&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div>
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    
+    <section class="article-copyright">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under CC BY-NC-SA 4.0</span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">Related content</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/%E5%85%B3%E4%BA%8E%E8%AF%BE%E7%A8%8B%E8%A1%A8%E4%BD%BF%E7%94%A8%E5%BF%83%E5%BE%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">关于课程表使用心得</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2022 GDUST@GNU/LUG
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="3.16.0">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

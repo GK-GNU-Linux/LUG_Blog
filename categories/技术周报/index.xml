@@ -1,0 +1,912 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>技术周报 on GDUST@GNU/LUG</title>
+        <link>https://linux.feldan.top/categories/%E6%8A%80%E6%9C%AF%E5%91%A8%E6%8A%A5/</link>
+        <description>Recent content in 技术周报 on GDUST@GNU/LUG</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>en-us</language>
+        <lastBuildDate>Tue, 29 Nov 2022 02:45:32 +0800</lastBuildDate><atom:link href="https://linux.feldan.top/categories/%E6%8A%80%E6%9C%AF%E5%91%A8%E6%8A%A5/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>KVM虚拟机GPU直通实验，为游戏助力</title>
+        <link>https://linux.feldan.top/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/</link>
+        <pubDate>Tue, 29 Nov 2022 02:45:32 +0800</pubDate>
+        
+        <guid>https://linux.feldan.top/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/</guid>
+        <description>&lt;img src="https://linux.feldan.top/p/kvm%E8%99%9A%E6%8B%9F%E6%9C%BAgpu%E7%9B%B4%E9%80%9A%E5%AE%9E%E9%AA%8C%E4%B8%BA%E6%B8%B8%E6%88%8F%E5%8A%A9%E5%8A%9B/neofetch.png" alt="Featured image of post KVM虚拟机GPU直通实验，为游戏助力" /&gt;&lt;p&gt;作者: Twac&lt;/p&gt;
+&lt;h2 id=&#34;介绍&#34;&gt;介绍&lt;/h2&gt;
+&lt;p&gt;KVM(Kernel-based Virtual Machine)是一个开源的系统虚拟化模块，选择KVM的原因是因为自己的主力系统的Linux。但是出于不可抗力的原因（臭打游戏的）也不能完全脱离Windows，起初笔记本装了双系统，但是来回切换还是太麻烦了，虽然Linux有Wine、Proton等一些兼容层，但是效果还是不尽人意。&lt;/p&gt;
+&lt;p&gt;于是就想在Linux上运行一台Windows虚拟机，但是KVM虚拟机配合QEMU的QXL图形渲染还是达不到（畅玩游戏）要求的。所以要利用KVM PCIe直通功能，让虚拟机独占高性能显卡，直接加载显卡对应的驱动，和显卡直接通信，给它加一双翅膀，拥有和物理机几乎同样的渲染性能。&lt;/p&gt;
+&lt;p&gt;实验环境：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/neofetch.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;neofetch&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;虚拟机镜像：Windows 10 LTSC 2019&lt;/li&gt;
+&lt;li&gt;主机：神舟战神G7-CT7NK&lt;/li&gt;
+&lt;li&gt;套件：libvirt + qemu + virt-manager(GUI)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;查看笔记本架构&#34;&gt;查看笔记本架构&lt;/h2&gt;
+&lt;p&gt;目前主流的笔记本架构是&lt;code&gt;MUXed&lt;/code&gt;和&lt;code&gt;MUXLess&lt;/code&gt;。相比&lt;code&gt;MUXLess&lt;/code&gt;来说，&lt;code&gt;MUXed&lt;/code&gt;架构的笔记本更容易直通，因为它采用的是核显/独显切换工作方式。而&lt;code&gt;MUXLess&lt;/code&gt;架构是核显输出，独显渲染。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ lspci &lt;span class=&#34;p&#34;&gt;|&lt;/span&gt; grep VGA &lt;span class=&#34;c1&#34;&gt;#查看架构&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;如果独显以3D Controller开头，那么属于&lt;code&gt;MUXLess&lt;/code&gt;；如果独显以VGA Controller开头，并且由于一个VGA核显输出(Intel/AMD)，那么属于&lt;code&gt;MUXed&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/lspci.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;lspci&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;开启vt-d虚拟化以及iommu模块&#34;&gt;开启VT-d虚拟化以及IOMMU模块&lt;/h2&gt;
+&lt;p&gt;BIOS开启VT-d，并在宿主机内核参数添加 &lt;code&gt;iommu=on,iommu=pt&lt;/code&gt; ，其中 &lt;code&gt;iommu=pt&lt;/code&gt; 为了防止不能直通的设备造成错误。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ dmesg &lt;span class=&#34;p&#34;&gt;|&lt;/span&gt; grep -e DMAR -e IOMMU  &lt;span class=&#34;c1&#34;&gt;#检查 dmesg 以确认 IOMMU 已经被正确启用&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;blockquote&gt;
+&lt;p&gt;注意：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;IOMMU 是 Intel VT-d 和 AMD-Vi 的通用名称。&lt;/li&gt;
+&lt;li&gt;VT-d 指的是直接输入/输出虚拟化(Intel Virtualization Technology for Directed I/O)，不应与VT-x(x86平台下的Intel虚拟化技术，Intel Virtualization Technology)混淆。VT-x 可以让一个硬件平台作为多个“虚拟”平台，而 VT-d 提高了虚拟化的安全性、可靠性和 I/O 性能。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;img src=&#34;https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/iommu.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;iommu&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;添加vfio模块屏蔽gpu&#34;&gt;添加vfio模块屏蔽GPU&lt;/h2&gt;
+&lt;p&gt;将&lt;code&gt;vfio_pci vfio vfio_iommu_type1 vfio_virqfd&lt;/code&gt;添加到initramfs中，重新生成内核并重启。然后运行以下脚本，查看设备id.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cp&#34;&gt;#!/bin/bash #查看是否生效
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;cp&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;shopt&lt;/span&gt; -s nullglob
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;for&lt;/span&gt; d in /sys/kernel/iommu_groups/*/devices/*&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;do&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nv&#34;&gt;n&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;${&lt;/span&gt;&lt;span class=&#34;nv&#34;&gt;d&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;#*/iommu_groups/*&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;nv&#34;&gt;n&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;${&lt;/span&gt;&lt;span class=&#34;nv&#34;&gt;n&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;%%/*&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nb&#34;&gt;printf&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;IOMMU Group %s &amp;#39;&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;&lt;span class=&#34;nv&#34;&gt;$n&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    lspci -nns &lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;${&lt;/span&gt;&lt;span class=&#34;nv&#34;&gt;d&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;##*/&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;done&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;可以看到group1对应的是本机独显设备
+&lt;img src=&#34;https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/group.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;iommu_group&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;将以上设备id添加到&lt;code&gt;/etc/modprobe.d/vfio.conf&lt;/code&gt;中启用vfio-pci驱动隔离GPU，编辑内容如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/etc/modprobe.d/vfio.conf
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;----------------------------------------------------------------------
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;options vfio-pci ids=8086:1901,10de:2191,10de:1aeb,10de:1aec.10de:1aed
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h2 id=&#34;创建虚拟机&#34;&gt;创建虚拟机&lt;/h2&gt;
+&lt;p&gt;使用virt-manager(GUI)创建一台虚拟机：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;架构：Q35&lt;/li&gt;
+&lt;li&gt;固件：UEFI&lt;/li&gt;
+&lt;li&gt;CPUs：host-passthrogh&lt;/li&gt;
+&lt;li&gt;内存：8192(8G)&lt;/li&gt;
+&lt;li&gt;启动盘&amp;amp;数据盘：驱动使用virtio&lt;/li&gt;
+&lt;li&gt;网络：NIC/NAT，驱动依然virtio&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;默认先用QEMU的QXL渲染，安装好&lt;a class=&#34;link&#34; href=&#34;https://github.com/virtio-win/virtio-win-pkg-scripts&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;virtio驱动&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;显卡直通&#34;&gt;显卡直通&lt;/h2&gt;
+&lt;p&gt;先确定一下显卡 &lt;code&gt;device-id&lt;/code&gt; 和 &lt;code&gt;vendor-id&lt;/code&gt; 和 PCI 总线 ID 是否一致，如果不一致需要将 ID 修改为一致的，终端运行&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;$ lspci -nnk &lt;span class=&#34;p&#34;&gt;|&lt;/span&gt; egrep -A3 &lt;span class=&#34;s2&#34;&gt;&amp;#34;VGA|3D&amp;#34;&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;#检查ID&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/subSystem.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;subSystem&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;如图我的独显的vendor-id是&lt;code&gt;10de&lt;/code&gt;，device-id是&lt;code&gt;2191&lt;/code&gt;;&lt;br&gt;
+PCI系统总线的 vendor-id 是&lt;code&gt;1558&lt;/code&gt;，device-id 是&lt;code&gt;8550&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;拿到ID后在virt-manager(GUI)直通独显设备，注意要将IOMMU组里的全部设备直通进去&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/addPCIe.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;addPCIe&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;由于NVIDIA今年放开了虚拟化限制，提取显卡vbios是一个可选项，不需要绕过检测。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;此时如果开机，查看设备管理器会多出一个&lt;code&gt;Microsoft基本显示适配器&lt;/code&gt;，说明已经识别到设备了，但是点开一看报了代码&lt;code&gt;31&lt;/code&gt;，无法加载驱动。需要在虚拟机xml配置PCIe总线id。&lt;/p&gt;
+&lt;p&gt;首先在xml配置的第一行&lt;code&gt;&amp;lt;domain&amp;gt;&lt;/code&gt;标签配置qemu命名空间（详情看文末虚拟机xml配置）&lt;code&gt;&amp;lt;domain xmlns:qemu=&amp;quot;http://libvirt.org/schemas/domain/qemu/1.0&amp;quot; type=&amp;quot;kvm&amp;quot;&amp;gt;&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;然后在虚拟机xml配置尾部添加前面记录的PCIe总线id&lt;code&gt;(注意进制转换)&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:override&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:device&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;alias=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;hostdev0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:frontend&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:property&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;x-pci-sub-vendor-id&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;unsigned&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;value=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;5464&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:property&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;x-pci-sub-device-id&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;unsigned&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;value=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;34128&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;/qemu:frontend&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/qemu:device&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/qemu:override&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;如果你的qemu版本低于7.0那么用如下配置即可&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:commandline&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:arg&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;value=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#39;-set&amp;#39;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:arg&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;value=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#39;device.hostdev0.x-pci-sub-vendor-id=5464&amp;#39;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:arg&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;value=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#39;-set&amp;#39;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:arg&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;value=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#39;device.hostdev0.x-pci-sub-device-id=34128&amp;#39;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/qemu:commandline&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;做完这些重启虚拟机，驱动应该是正常运行，此时算是大功告成。直通显卡后，开启虚拟机后要切换独显输出，因为宿主机用的是核显，此时可以选择外接一个显示器（笔记本的HDMI/DP接口使用的是独显），或者利用&lt;code&gt;libvirt hooks&lt;/code&gt;钩子函数让独显抢占当前笔记本显示器。&lt;/p&gt;
+&lt;p&gt;至此显卡基本直通到此结束，还是趟了很多坑的。小小记录一下。
+&lt;img src=&#34;https://file.feldan1.top:9443/d/misc/blog/2022-11-29_KVM%E7%9B%B4%E9%80%9A%E6%98%BE%E5%8D%A1/img/view.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;效果&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;h2 id=&#34;参考链接&#34;&gt;参考链接&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;https://wiki.archlinux.org/title/%3ePCI_passthrough_via_OVMF_%28%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87%29&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;ArchWiki - PCI passthrough via OVMF (简体中文)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;https://wiki.archlinux.org/title/Intel_GVT-g&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;ArchWiki - Intel_GVT-g&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;https://wiki.archlinux.org/title/Libvirt&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;ArchWiki - Libvirt&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;xml完整配置&#34;&gt;XML完整配置&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;  1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;  2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;  3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;  4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;  5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;  6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;  7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;  8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;  9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 17
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 18
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 19
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 20
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 21
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 22
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 23
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 24
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 25
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 26
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 27
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 28
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 29
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 30
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 31
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 32
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 33
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 34
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 35
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 36
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 37
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 38
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 39
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 40
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 41
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 42
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 43
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 44
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 45
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 46
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 47
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 48
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 49
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 50
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 51
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 52
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 53
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 54
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 55
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 56
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 57
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 58
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 59
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 60
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 61
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 62
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 63
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 64
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 65
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 66
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 67
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 68
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 69
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 70
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 71
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 72
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 73
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 74
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 75
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 76
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 77
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 78
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 79
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 80
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 81
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 82
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 83
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 84
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 85
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 86
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 87
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 88
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 89
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 90
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 91
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 92
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 93
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 94
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 95
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 96
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 97
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 98
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 99
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;100
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;101
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;102
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;103
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;104
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;105
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;106
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;107
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;108
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;109
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;110
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;111
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;112
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;113
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;114
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;115
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;116
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;117
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;118
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;119
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;120
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;121
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;122
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;123
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;124
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;125
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;126
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;127
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;128
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;129
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;130
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;131
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;132
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;133
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;134
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;135
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;136
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;137
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;138
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;139
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;140
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;141
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;142
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;143
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;144
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;145
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;146
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;147
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;148
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;149
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;150
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;151
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;152
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;153
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;154
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;155
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;156
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;157
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;158
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;159
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;160
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;161
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;162
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;163
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;164
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;165
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;166
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;167
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;168
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;169
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;170
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;171
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;172
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;173
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;174
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;175
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;176
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;177
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;178
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;179
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;180
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;181
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;182
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;183
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;184
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;185
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;186
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;187
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;188
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;189
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;190
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;191
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;192
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;193
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;194
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;195
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;196
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;197
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;198
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;199
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;200
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;201
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;202
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;203
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;204
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;205
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;206
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;207
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;208
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;209
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;210
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;211
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;212
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;213
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;214
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;215
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;216
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;217
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;218
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;219
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;220
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;221
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;222
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;223
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;224
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;225
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;226
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;227
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;228
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;229
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;230
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;231
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;232
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;233
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;234
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;235
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;236
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;237
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;238
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;239
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;240
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;241
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;242
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;243
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;244
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;245
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;246
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;247
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;248
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;249
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;250
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;251
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c&#34;&gt;&amp;lt;!-- 第一行`&amp;lt;domain&amp;gt;`标签配置qemu命名空间`&amp;lt;domain xmlns:qemu=&amp;#34;http://libvirt.org/schemas/domain/qemu/1.0&amp;#34; type=&amp;#34;kvm&amp;#34;&amp;gt;` --&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;domain&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;xmlns:qemu=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;http://libvirt.org/schemas/domain/qemu/1.0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;kvm&amp;#34;&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;err&#34;&gt;&amp;lt;name&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;win10&lt;span class=&#34;nt&#34;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;uuid&amp;gt;&lt;/span&gt;7c121caf-30db-4a3a-82f6-d59ca87b802f&lt;span class=&#34;nt&#34;&gt;&amp;lt;/uuid&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;metadata&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;libosinfo:libosinfo&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;xmlns:libosinfo=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;http://libosinfo.org/xmlns/libvirt/domain/1.0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;libosinfo:os&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;http://microsoft.com/win/10&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/libosinfo:libosinfo&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;/metadata&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;memory&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;unit=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;KiB&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;12582912&lt;span class=&#34;nt&#34;&gt;&amp;lt;/memory&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;currentMemory&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;unit=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;KiB&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;12582912&lt;span class=&#34;nt&#34;&gt;&amp;lt;/currentMemory&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;vcpu&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;placement=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;static&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;8&lt;span class=&#34;nt&#34;&gt;&amp;lt;/vcpu&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;os&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;type&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;arch=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;x86_64&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;machine=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pc-q35-7.0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;hvm&lt;span class=&#34;nt&#34;&gt;&amp;lt;/type&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;loader&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;readonly=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pflash&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;/usr/share/edk2-ovmf/x64/OVMF_CODE.fd&lt;span class=&#34;nt&#34;&gt;&amp;lt;/loader&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;nvram&amp;gt;&lt;/span&gt;/var/lib/libvirt/qemu/nvram/win10_VARS.fd&lt;span class=&#34;nt&#34;&gt;&amp;lt;/nvram&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;/os&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;features&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;acpi/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;apic/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hyperv&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;custom&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hyperv&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;vmport&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;state=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;off&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;/features&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;cpu&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;host-passthrough&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;check=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;none&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;migratable=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;on&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;topology&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;sockets=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;dies=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;cores=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;4&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;threads=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;/cpu&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;clock&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;offset=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;localtime&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;timer&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;rtc&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;tickpolicy=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;catchup&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;timer&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pit&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;tickpolicy=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;delay&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;timer&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;hpet&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;present=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;no&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;timer&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;hypervclock&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;present=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;/clock&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;on_poweroff&amp;gt;&lt;/span&gt;destroy&lt;span class=&#34;nt&#34;&gt;&amp;lt;/on_poweroff&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;on_reboot&amp;gt;&lt;/span&gt;restart&lt;span class=&#34;nt&#34;&gt;&amp;lt;/on_reboot&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;on_crash&amp;gt;&lt;/span&gt;destroy&lt;span class=&#34;nt&#34;&gt;&amp;lt;/on_crash&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;pm&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;suspend-to-mem&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;enabled=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;no&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;suspend-to-disk&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;enabled=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;no&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;/pm&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;devices&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;emulator&amp;gt;&lt;/span&gt;/usr/bin/qemu-system-x86_64&lt;span class=&#34;nt&#34;&gt;&amp;lt;/emulator&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;disk&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;file&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;device=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;disk&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;driver&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;qemu&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;qcow2&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;cache=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;writeback&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;discard=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;ignore&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;file=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;/home/twac/VM/storage/win10.qcow2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;dev=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;vda&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;virtio&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;boot&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;order=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x04&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/disk&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;disk&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;file&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;device=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;disk&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;driver&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;qemu&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;qcow2&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;cache=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;writeback&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;discard=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;ignore&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;file=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;/home/twac/VM/storage/DATA.qcow2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;dev=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;vdb&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;virtio&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0a&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/disk&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;disk&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;file&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;device=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;cdrom&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;driver&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;qemu&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;raw&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;file=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;/home/twac/VM/ISO/Win10_21H2_Chinese(Simplified)_x64.iso&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;dev=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;sdb&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;sata&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;readonly/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;boot&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;order=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;drive&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;controller=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;target=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;unit=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/disk&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;disk&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;file&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;device=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;cdrom&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;driver&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;qemu&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;raw&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;file=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;/home/twac/VM/ISO/virtio-win-0.1.208.iso&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;dev=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;sdc&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;sata&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;readonly/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;drive&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;controller=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;target=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;unit=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/disk&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;usb&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;qemu-xhci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;ports=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;15&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x10&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;multifunction=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;on&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;2&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;2&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x11&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;3&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;3&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x12&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;4&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;4&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x13&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x3&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;5&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;5&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x14&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x4&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;6&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;6&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x15&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x5&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;7&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;7&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x16&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x6&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;8&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;8&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x17&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x7&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;9&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;9&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x18&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x03&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;multifunction=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;on&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;10&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;10&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x19&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x03&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;11&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;11&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1a&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x03&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;12&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;12&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1b&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x03&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x3&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;13&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;13&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1c&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x03&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x4&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;14&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;14&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1d&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x03&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x5&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;15&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-root-port&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;target&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;chassis=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;15&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x8&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x01&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;16&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-to-pci-bridge&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pcie-pci-bridge&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0b&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;sata&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1f&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;controller&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;virtio-serial&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;index=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x03&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/controller&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;interface&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;network&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;mac&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;address=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;52:54:00:98:77:e9&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;network=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;default&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;model&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;virtio&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0c&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/interface&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;input&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;mouse&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;ps2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;input&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;keyboard&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;ps2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;sound&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;ich6&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x10&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x01&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/sound&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;audio&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;none&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;driver&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;vfio&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x01&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;rom&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bar=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;on&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;file=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;/var/tmp/1660ti.rom&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x06&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x01&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;rom&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bar=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;on&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;file=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;/var/tmp/1660ti.rom&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x07&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x01&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;rom&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bar=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;on&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;file=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;/var/tmp/1660ti.rom&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x08&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x01&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x3&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;rom&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bar=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;on&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;file=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;/var/tmp/1660ti.rom&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x09&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;usb&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;vendor&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x046d&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;product&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0xc332&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;usb&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;usb&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;vendor&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x05ac&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;product&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;id=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x024f&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;usb&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;port=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;2&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1f&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x10&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x02&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1f&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x3&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x10&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x03&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1f&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x4&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x10&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x04&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;hostdev&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;mode=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;subsystem&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;managed=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x1f&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x5&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/source&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x10&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x05&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/hostdev&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;memballoon&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;model=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;virtio&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;address&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;pci&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;domain=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0000&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;bus=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x05&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;slot=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x00&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;function=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;0x0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/memballoon&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;/devices&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:override&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:device&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;alias=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;hostdev0&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:frontend&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:property&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;x-pci-sub-vendor-id&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;unsigned&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;value=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;5464&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;qemu:property&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;name=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;x-pci-sub-device-id&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;type=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;unsigned&amp;#34;&lt;/span&gt; &lt;span class=&#34;na&#34;&gt;value=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;34128&amp;#34;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;/qemu:frontend&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;/qemu:device&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;lt;/qemu:override&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/domain&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description>
+        </item>
+        <item>
+        <title>关于课程表使用心得</title>
+        <link>https://linux.feldan.top/p/%E5%85%B3%E4%BA%8E%E8%AF%BE%E7%A8%8B%E8%A1%A8%E4%BD%BF%E7%94%A8%E5%BF%83%E5%BE%97/</link>
+        <pubDate>Sat, 20 Nov 2021 03:06:49 +0800</pubDate>
+        
+        <guid>https://linux.feldan.top/p/%E5%85%B3%E4%BA%8E%E8%AF%BE%E7%A8%8B%E8%A1%A8%E4%BD%BF%E7%94%A8%E5%BF%83%E5%BE%97/</guid>
+        <description>&lt;h2 id=&#34;课表-ics-生成&#34;&gt;课表 (.ics) 生成&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;如果你是广东科技学院学生，请访问 &lt;a class=&#34;link&#34; href=&#34;https://greasyfork.org/zh-CN/scripts/441136-gdust-%E6%AD%A3%E6%96%B9%E6%95%99%E5%8A%A1%E7%B3%BB%E7%BB%9F%E8%AF%BE%E7%A8%8B%E8%A1%A8%E8%BD%ACics&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;ZFClassTable2ICS&lt;/a&gt; ，可自动生成学生课表。&lt;/strong&gt;
+&lt;img src=&#34;https://linux.feldan.top/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/ipad.jpg&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;效果图&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;简介&#34;&gt;简介&lt;/h2&gt;
+&lt;p&gt;iCalendar 是广泛使用的日历数据交换标准，在诸如 Apple 日历、Google Calendar 的日历 app 中创建日历项，不仅可清晰的了解日程安排，更可体验 iOS、Android 系统为日历提供的各种功能：计划出行时间、日程提醒、如 Siri 与 Google Assistant 等智能语音助理自动化服务等。&lt;/p&gt;
+&lt;p&gt;不过，并非所有学校都为学生提供 ics 日历，因此本代码旨在用 Python 3 协助你创建一个自己的 ics 日历课表。&lt;/p&gt;
+&lt;h2 id=&#34;功能&#34;&gt;功能&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;经测试，兼容 Apple 日历、Google CalendarOutlook Calendar、MIUI Calendar、Boomsung Calendar 等日历应用，&lt;strong&gt;支持上述应用的日历订阅(&lt;code&gt;特别提醒&lt;/code&gt;部分&lt;code&gt;一加&lt;/code&gt;手机日历&lt;code&gt;不支持&lt;/code&gt;导入ics文件至日历,需要自行下载完整版的日历app)&lt;/strong&gt;（如果以本代码生成的文件创建日历订阅）&lt;/li&gt;
+&lt;li&gt;支持录入各种信息，示例代码中包含：教室、课程名称、教师、必修/选修状态等&lt;/li&gt;
+&lt;li&gt;支持多种课程时间安排：&lt;strong&gt;单独的周数，范围的周数，奇偶周数&lt;/strong&gt;，如 &amp;ldquo;&lt;strong&gt;第2周，5 至 11 周中的单数周，13 至 17 周&lt;/strong&gt;&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;支持添加教学楼信息，其中 &lt;strong&gt;Apple 日历还支持教学楼 GPS 定位&lt;/strong&gt; ，在日历项中添加教学楼，就可利用 iOS 的 Siri 分析功能在多个 app 中获得附加功能&lt;/li&gt;
+&lt;li&gt;导入到系统日历后，支持诸多由操作系统提供的日历功能：例如，在 iOS 设备中添加日历项后，你可以直接向 Siri 询问：「我下周五有什么日程？」获得下周五的课表；或是在 Apple Watch 表盘上显示下一个课程的时间；或是使用 Shortcut 捷径进行更多操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;使用&#34;&gt;使用&lt;/h2&gt;
+&lt;h2 id=&#34;生成后使用&#34;&gt;生成后使用&lt;/h2&gt;
+&lt;h3 id=&#34;关于导入日历和订阅日历&#34;&gt;关于导入日历和订阅日历&lt;/h3&gt;
+&lt;h4 id=&#34;名词释义&#34;&gt;名词释义&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;导入日历&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;导入日历是一次性行为，生成 ics 并导入日历后，日历 app 将仅保留 ics 文件中的日历项。在需要变更日历时，可能需要先移除已有的日历项，再重新导入新的日历。&lt;/p&gt;
+&lt;p&gt;其特点是数据一经导入后&lt;strong&gt;便进行存档&lt;/strong&gt;，并且，你可以随时在日历 app 中&lt;strong&gt;修改日历项的内容&lt;/strong&gt;，例如调整日历项的时间、地点、标题、内容等等。&lt;/p&gt;
+&lt;p&gt;导入日历相当于是复制了 ics 中的日历项并创建到你的日历当中。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;订阅日历&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;订阅日历是一个只读行为，你需要向日历 app 提供日历（ics 文件）的地址，日历 app 将自动定时请求这一地址，以检查日历有无发生变更，并在变更时自动将更新的日历同步到你的日历 app 中。&lt;/p&gt;
+&lt;p&gt;其特点是数据随远程 ics 文件的变化而变化，并且，日历项完全由 ics 文件决定，你不能&lt;strong&gt;修改日历项的任何内容&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;订阅日历的好处是，只要服务端的日历变更，日历 app 中的数据便会获得同步变更。&lt;/p&gt;
+&lt;h4 id=&#34;iosipados-用户&#34;&gt;iOS、iPadOS 用户&lt;/h4&gt;
+&lt;h5 id=&#34;导入日历&#34;&gt;导入日历&lt;/h5&gt;
+&lt;p&gt;要导入日历，你需要在 iOS、iPadOS 上设法打开 ics 文件，较为简单的方法是：（iOS 与 iPadOS 相同）&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果你有 Mac 等其他 Apple 设备并支持 AirDrop，将 ics 文件 AirDrop 到需要导入日历的 iOS 设备即可；&lt;/li&gt;
+&lt;li&gt;如果你使用 iOS 自带的邮件 app，将 ics 作为附件发送邮件给设备，并点击附件中的 ics 文件；&lt;/li&gt;
+&lt;li&gt;如果你有网络服务器，或有办法将 ics 上传到一个网站上，使用 Safari 浏览器打开链接到 ics 文件的地址；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;导入的界面类似下图&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://linux.feldan.top/..p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/images/&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击「添加全部」按钮，将会导入所有日历项到你的日历当中。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;注意！若你只有一个日历&lt;/strong&gt;（日历是容纳日历项的地方，iOS 支持创建多个日历），点击「添加全部」将直接添加到你的唯一日历中，此日历可能包含了你的其他日历项，直接添加到默认日历可能造成后续删除课表极为不便（难以进行批量删除）。&lt;/p&gt;
+&lt;p&gt;强烈建议首先创建一个空白日历，此后点击「添加全部」，iOS 会提示你选择导入的日历，选择空白日历有利于后续进行批量管理。&lt;/p&gt;
+&lt;h5 id=&#34;订阅日历&#34;&gt;订阅日历&lt;/h5&gt;
+&lt;p&gt;要订阅日历，你必须将 ics 放在一个固定可访问的 URL 地址，这可能要求你有可控制的 Web 服务器。&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h4 id=&#34;android-用户&#34;&gt;Android 用户&lt;/h4&gt;
+&lt;h5 id=&#34;导入日历-1&#34;&gt;导入日历&lt;/h5&gt;
+&lt;p&gt;要导入日历，通iOS 设备一样,你需要在Android 上设法打开 ics 文件，较为简单的方法是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;浏览器下载ics文件,使用日历打开.
+&lt;img src=&#34;https://linux.feldan.top/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/images/phone1.jpg&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;日历打开ics&#34;
+	
+	
+&gt;&lt;/li&gt;
+&lt;li&gt;如果你使用邮件 app，将 ics 作为附件发送邮件给设备，并点击附件中的 ics 文件；&lt;/li&gt;
+&lt;li&gt;如果你有网络服务器，或有办法将 ics 上传到一个网站上，使用 Safari 浏览器打开链接到 ics 文件的地址；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;导入的界面类似下图&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://linux.feldan.top/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/images/phone2.jpg&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;手机导入&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;点击「添加全部」按钮，将会导入所有日历项到你的日历当中。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;注意！若你只有一个日历&lt;/strong&gt;（日历是容纳日历项的地方，Android 同样支持创建多个日历），点击「添加全部」将直接添加到你的唯一日历中，此日历可能包含了你的其他日历项，直接添加到默认日历可能造成后续删除课表极为不便（难以进行批量删除）。&lt;/p&gt;
+&lt;p&gt;强烈建议首先创建一个空白日历，此后点击「添加全部」，Android 会提示你选择导入的日历，选择空白日历有利于后续进行批量管理。&lt;/p&gt;
+&lt;h5 id=&#34;订阅日历-1&#34;&gt;订阅日历&lt;/h5&gt;
+&lt;p&gt;要订阅日历，你必须将 ics 放在一个固定可访问的 URL 地址，这可能要求你有可控制的 Web 服务器。&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h3 id=&#34;为什么使用-ical&#34;&gt;为什么使用 iCal&lt;/h3&gt;
+&lt;p&gt;在诸如 Apple 日历、Google Calendar 的日历 app 中创建日历项，不仅可清晰的了解日程安排，更可体验 iOS、Android 系统为日历提供的各种功能：计划出行时间、日程提醒、如 Siri 与 Google Assistant 等智能语音助理自动化服务等
+例如，在设备中添加日历项后，你可以直接向语音助手询问「明天有什么日程」
+&lt;img src=&#34;https://linux.feldan.top/p/%e5%b9%bf%e7%a7%91%e6%89%8b%e5%86%8c/images/boomsung.jpg&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;boomsung&#34;
+	
+	
+&gt;&lt;/p&gt;
+</description>
+        </item>
+        
+    </channel>
+</rss>

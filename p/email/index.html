@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content='电子邮件服务'>
+<title>email</title>
+
+<link rel='canonical' href='https://linux.feldan.top/p/email/'>
+
+<link rel="stylesheet" href="/scss/style.min.8191399262444ab68b72a18c97392f5349be20a1615d77445be51e974c144cff.css"><meta property='og:title' content='email'>
+<meta property='og:description' content='电子邮件服务'>
+<meta property='og:url' content='https://linux.feldan.top/p/email/'>
+<meta property='og:site_name' content='GDUST@GNU/LUG'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2021-09-11T03:51:12&#43;08:00'/><meta property='article:modified_time' content='2021-09-11T03:51:12&#43;08:00'/>
+<meta name="twitter:title" content="email">
+<meta name="twitter:description" content="电子邮件服务">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/avatar_hu0ab85e369b83cae1a3908d76e30944b6_1614408_300x0_resize_box_3.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">GDUST@GNU/LUG</a></h1>
+            <h2 class="site-description">广东科技学院Linux用户协会</h2>
+        </div>
+    </header><ol class="social-menu">
+            
+                <li>
+                    <a 
+                        href='https://github.com/orgs/GK-GNU-Linux/dashboard'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/about/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>About</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>Archives</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>Search</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/links/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>Links</span>
+            </a>
+        </li>
+        
+
+        <div class="menu-bottom-section">
+            
+            
+                <li id="dark-mode-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <span>Dark Mode</span>
+                </li>
+            
+        </div>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#通过网页收发邮件">通过网页收发邮件</a></li>
+    <li><a href="#在移动设备上收发邮件">在移动设备上收发邮件</a>
+      <ol>
+        <li><a href="#参数">参数</a></li>
+        <li><a href="#微信">微信</a></li>
+        <li><a href="#苹果自带邮件应用mailapp">苹果自带邮件应用（Mail.app）</a></li>
+        <li><a href="#qq邮箱客户端">QQ邮箱客户端</a></li>
+        <li><a href="#outlook客户端">Outlook客户端</a></li>
+        <li><a href="#安卓手机通用教程">安卓手机通用教程</a></li>
+      </ol>
+    </li>
+    <li><a href="#在计算机上收发邮件">在计算机上收发邮件</a>
+      <ol>
+        <li><a href="#windows自带的邮件应用">Windows自带的邮件应用</a></li>
+        <li><a href="#macos自带的邮件应用">MacOS自带的邮件应用</a></li>
+        <li><a href="#outlook桌面版">Outlook桌面版</a></li>
+      </ol>
+    </li>
+    <li><a href="#更多阅读参考">更多阅读/参考</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/email/">email</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            电子邮件服务
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">Sep 11, 2021</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    1 minute read
+                </time>
+            </div>
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <p>学校使用企业邮箱作为邮件系统，每位同学分配如[姓名]@gdust.edu.cn的邮箱。</p>
+<h2 id="通过网页收发邮件">通过网页收发邮件</h2>
+<p>访问 QQ 企业邮箱登录页<a class="link" href="https://exmail.qq.com/login"  target="_blank" rel="noopener"
+    >https://exmail.qq.com/login</a>，输入邮箱和密码登入。也可通过企业微信使用网页邮箱</p>
+<h2 id="在移动设备上收发邮件">在移动设备上收发邮件</h2>
+<h3 id="参数">参数</h3>
+<p>假如一位同学的邮箱是zhangsan@gdust.edu.cn，密码是<strong>337845818</strong> 。</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th style="text-align:center">项目</th>
+<th>值</th>
+<th>其他参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">用户名</td>
+<td><code>zhangsan@gdust.edu.cn</code></td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align:center">密码</td>
+<td><code>337845818</code></td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align:center">邮件服务器（Exchange）</td>
+<td>ex.exmail.qq.com</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align:center">发件服务器（SMTP）</td>
+<td>smtp.exmail.qq.com</td>
+<td>使用SSL，端口号465</td>
+</tr>
+<tr>
+<td style="text-align:center">发件服务器（POP3）</td>
+<td>pop.exmail.qq.com</td>
+<td>使用SSL，端口号995</td>
+</tr>
+<tr>
+<td style="text-align:center">收件服务器（IMAP）</td>
+<td>imap.exmail.qq.com</td>
+<td>使用SSL，端口号993</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="微信">微信</h3>
+<p>使用企业微信，并按提示操作。</p>
+<h3 id="苹果自带邮件应用mailapp">苹果自带邮件应用（Mail.app）</h3>
+<p>建议使用Exchange方式收件。</p>
+<ul>
+<li><a class="link" href="https://support.apple.com/zh-cn/HT201320"  target="_blank" rel="noopener"
+    >向 iPhone、iPad 或 iPod touch 添加电子邮件帐户</a></li>
+</ul>
+<h3 id="qq邮箱客户端">QQ邮箱客户端</h3>
+<p>按照应用提示操作即可。</p>
+<h3 id="outlook客户端">Outlook客户端</h3>
+<p>建议使用Exchange方式收件。</p>
+<ul>
+<li><a class="link" href="https://support.microsoft.com/zh-cn/office/%E5%9C%A8-outlook-for-android-%E5%BA%94%E7%94%A8%E4%B8%AD%E8%AE%BE%E7%BD%AE%E7%94%B5%E5%AD%90%E9%82%AE%E4%BB%B6-886db551-8dfa-4fd5-b835-f8e532091872?ui=zh-cn&amp;rs=zh-cn&amp;ad=cn"  target="_blank" rel="noopener"
+    >在 Outlook for Android 应用中设置电子邮件</a></li>
+</ul>
+<h3 id="安卓手机通用教程">安卓手机通用教程</h3>
+<p>建议使用Exchange方式收件。</p>
+<ul>
+<li><a class="link" href="https://service.exmail.qq.com/cgi-bin/help?subtype=1&amp;&amp;id=20019&amp;&amp;no=1001530"  target="_blank" rel="noopener"
+    >如何在Android系统中使用腾讯企业邮箱Exchange同步服务？</a></li>
+</ul>
+<h2 id="在计算机上收发邮件">在计算机上收发邮件</h2>
+<h3 id="windows自带的邮件应用">Windows自带的邮件应用</h3>
+<p>建议使用Exchange方式收件。</p>
+<ul>
+<li><a class="link" href="https://support.microsoft.com/zh-cn/office/%e5%9c%a8-windows-10-%e9%82%ae%e4%bb%b6%e5%ba%94%e7%94%a8%e4%b8%ad%e8%ae%be%e7%bd%ae%e7%94%b5%e5%ad%90%e9%82%ae%e4%bb%b6-7ff79e8b-439b-4b47-8ff9-3f9a33166c60?ui=zh-cn&amp;rs=zh-cn&amp;ad=cn"  target="_blank" rel="noopener"
+    >在 Windows 10 邮件应用中设置电子邮件</a></li>
+</ul>
+<h3 id="macos自带的邮件应用">MacOS自带的邮件应用</h3>
+<p>建议使用IMAP方式收件。</p>
+<ul>
+<li>
+<p><a class="link" href="https://support.apple.com/zh-cn/guide/mail/mail35803/mac"  target="_blank" rel="noopener"
+    >在 Mac 上的“邮件”中添加或移除电子邮件帐户</a></p>
+</li>
+<li>
+<p><a class="link" href="https://support.apple.com/zh-cn/guide/mail/cpmlprefacctadv/mac"  target="_blank" rel="noopener"
+    >在 Mac 上的“邮件”中更改服务器设置</a></p>
+</li>
+</ul>
+<h3 id="outlook桌面版">Outlook桌面版</h3>
+<p>由于QQ邮箱不支持完整版的Exchange（只支持Exchange Activesync）因此Outlook桌面版不能以Exchange模式添加账户，只能使用IMAP或POP模式添加账户。</p>
+<ul>
+<li><a class="link" href="https://support.microsoft.com/zh-cn/office/%E5%90%91-outlook-%E6%B7%BB%E5%8A%A0%E7%94%B5%E5%AD%90%E9%82%AE%E4%BB%B6%E5%B8%90%E6%88%B7-6e27792a-9267-4aa4-8bb6-c84ef146101b"  target="_blank" rel="noopener"
+    >向 Outlook 添加电子邮件帐户</a></li>
+</ul>
+<h2 id="更多阅读参考">更多阅读/参考</h2>
+<ul>
+<li><a class="link" href="https://qianjian.space/2017/09/email-guide/"  target="_blank" rel="noopener"
+    >Email 使用指南/浅见</a></li>
+<li><a class="link" href="https://service.exmail.qq.com/cgi-bin/help?subtype=1&amp;id=28&amp;no=1000585"  target="_blank" rel="noopener"
+    >如何设置IMAP、POP3/SMTP及其SSL加密方式？/腾讯企业邮箱</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+
+    
+    <section class="article-copyright">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under CC BY-NC-SA 4.0</span>
+    </section>
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2022 GDUST@GNU/LUG
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="3.16.0">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
